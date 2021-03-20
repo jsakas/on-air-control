@@ -10,16 +10,13 @@ import { saveState, loadState } from './localStorage';
 import { xml2json } from 'xml-js';
 import clsx from 'clsx';
 
-const makeRequest = (state = 0) => `
-  <?xml version="1.0" encoding="utf-8"?>
-  <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-    <s:Body>
-      <u:SetBinaryState xmlns:u="urn:Belkin:service:basicevent:1">
-        <BinaryState>${state}</BinaryState>
-      </u:SetBinaryState>
-    </s:Body>
-  </s:Envelope>
-`
+const debug = r => {
+  if (window.DEBUG) {
+    console.log(r);
+  }
+
+  return r;
+}
 
 const switchBinaryState = (state = 0) => {
   return fetch('http://192.168.0.190:49153/upnp/control/basicevent1', {
@@ -28,9 +25,41 @@ const switchBinaryState = (state = 0) => {
       'SOAPACTION': '"urn:Belkin:service:basicevent:1#SetBinaryState"',
       'Content-Type': 'text/xml; charset=utf-8',
     },
-    body: makeRequest(state),
+    body: `
+      <?xml version="1.0" encoding="utf-8"?>
+      <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+        <s:Body>
+          <u:SetBinaryState xmlns:u="urn:Belkin:service:basicevent:1">
+            <BinaryState>${state}</BinaryState>
+          </u:SetBinaryState>
+        </s:Body>
+      </s:Envelope>
+    `,
   })
     .then(r => r.text())
+    .then(debug)
+    .then(xml2json)
+    .then(JSON.parse)
+}
+
+const getBinaryState = () => {
+  return fetch('http://192.168.0.190:49153/upnp/control/basicevent1', {
+    method: 'POST',
+    headers: {
+      'SOAPACTION': '"urn:Belkin:service:basicevent:1#GetBinaryState"',
+      'Content-Type': 'text/xml; charset=utf-8',
+    },
+    body: `
+      <?xml version="1.0" encoding="utf-8"?>
+      <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+        <s:Body>
+          <u:GetBinaryState xmlns:u="urn:Belkin:service:basicevent:1"></u:GetBinaryState>
+        </s:Body>
+      </s:Envelope>
+    `,
+  })
+    .then(r => r.text())
+    .then(debug)
     .then(xml2json)
     .then(JSON.parse)
 }
@@ -38,20 +67,32 @@ const switchBinaryState = (state = 0) => {
 
 const PluginInterface = ({ initialState }) => {
   const [state, setState] = useState(initialState);
-  const [response, setResponse] = useState({});
   const { binaryState } = state;
 
+  const setPartialState = (ns = {}) => setState(state => ({ ...state, ...ns }))
+
   useEffect(() => {
-    switchBinaryState(binaryState).then(setResponse);
+    const interval = setInterval(() => {
+      getBinaryState().then(r => {
+        try {
+          const state = r.elements[0].elements[0].elements[0].elements[0].elements[0].text;
+          setState({ binaryState: Number(state) })
+        } catch (e) {
+          console.error(e);
+        }
+      })
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [])
+
+  useEffect(() => {
+    switchBinaryState(binaryState)
   }, [binaryState])
 
   useEffect(() => {
     saveState(state)
   }, [JSON.stringify(state)])
-
-  const setPartialState = (ns = {}) => {
-    setState(state => ({ ...state, ...ns }))
-  }
 
   return (
     <div className="wrapper">
