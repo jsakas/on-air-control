@@ -1,0 +1,35 @@
+{
+  "name": "on-air-control",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Jon Sakas <jon@doubledrop.co>",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "webpack --watch",
+    "build": "rm -rf build && WEBPACK_ENV=production webpack",
+    "sign:firefox": "web-ext sign -s build/chrome --api-key=$WEB_EXT_API_KEY --api-secret=$WEB_EXT_API_SECRET --config-discovery=false --artifacts-dir=build/firefox",
+    "build:firefox": "web-ext build -s build/chrome --o --config-discovery=false --artifacts-dir=build/firefox",
+    "dist": "cd build && zip -r ../dist/plugin-$(node -e \"console.log(require('../package.json').version)\").zip .",
+    "package": "yarn build && yarn sign:firefox && yarn dist"
+  },
+  "dependencies": {
+    "@material-ui/core": "^4.11.3",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.13.10",
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.13.8",
+    "@babel/preset-env": "^7.13.10",
+    "@babel/preset-react": "^7.12.13",
+    "@material-ui/icons": "^4.11.2",
+    "babel-loader": "^8.2.2",
+    "copy-webpack-plugin": "^8.0.0",
+    "html-webpack-plugin": "^5.3.1",
+    "process": "^0.11.10",
+    "web-ext": "^6.0.0",
+    "webpack": "^5.27.0",
+    "webpack-cli": "^4.5.0"
+  }
+}
