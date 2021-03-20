@@ -37,6 +37,9 @@ module.exports = {
     ]
   },
   resolve: {
+    fallback: { 
+      stream: require.resolve('stream-browserify')
+    },
     alias: {
       process: 'process/ browser',
     },
