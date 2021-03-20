@@ -54,7 +54,7 @@ const PluginInterface = ({ initialState }) => {
   }
 
   return (
-    <div class="wrapper">
+    <div className="wrapper">
       <button
         className={clsx({
           line: true,
